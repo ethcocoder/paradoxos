@@ -7,6 +7,8 @@
 #include "keyboard.h"
 #include "mouse.h"
 #include "user.h"
+#include "vfs.h"
+#include "ramdisk.h"
 // #include "splash_img.h" // Disabled for stability
 // #include "login_img.h"
 
@@ -63,17 +65,17 @@ void draw_splash_screen(uint32_t screen_w, uint32_t screen_h) {
 }
 
 void draw_kali_login(uint32_t screen_w, uint32_t screen_h, const char* title) {
-    // Procedural Background (DEBUG: Solid Color)
-    gfx_clear(0xFF101025); 
+    // Procedural Background (Restored & Stable)
+    gfx_draw_gradient(0, 0, screen_w, screen_h, 0xFF050510, 0xFF101025);
     
     // Central Box (Kali Style)
     uint32_t w = 360, h = 420;
     uint32_t x = (screen_w - w) / 2;
     uint32_t y = (screen_h - h) / 2;
     
-    // Shadow & Glass Body (DEBUG: Solid)
-    gfx_draw_rect(x + 10, y + 10, w, h, 0xFF000000); // Shadow
-    gfx_draw_rect(x, y, w, h, 0xFF222222); // Body
+    // Shadow & Glass Body
+    gfx_draw_rect_alpha(x + 10, y + 10, w, h, 0x000000, 150);
+    gfx_draw_rect_alpha(x, y, w, h, 0x111111, 230); // Transparent black
     gfx_draw_rect(x, y, w, 2, COLOR_PURPLE); // Accent top
     
     draw_logo(x + 155, y + 40);
@@ -82,14 +84,14 @@ void draw_kali_login(uint32_t screen_w, uint32_t screen_h, const char* title) {
     
     // Username
     font_draw_string("Username", x + 40, y + 180, 0xFFAAAAAA);
-    gfx_draw_rect(x + 40, y + 200, 280, 40, 0xFF000000);
+    gfx_draw_rect_alpha(x + 40, y + 200, 280, 40, 0x000000, 180);
     font_draw_string(input_buffer, x + 50, y + 212, COLOR_WHITE);
     if (input_focus == 0 && ((uint32_t)(__builtin_ia32_rdtsc() / 150000000) % 2 == 0))
         gfx_draw_rect(x + 50 + (input_ptr * 8), y + 212, 2, 16, COLOR_WHITE);
 
     // Password
     font_draw_string("Password", x + 40, y + 250, 0xFFAAAAAA);
-    gfx_draw_rect(x + 40, y + 270, 280, 40, 0xFF000000);
+    gfx_draw_rect_alpha(x + 40, y + 270, 280, 40, 0x000000, 180);
     char stars[MAX_NAME_LEN] = {0};
     for(int i=0; i<pass_ptr; i++) stars[i] = '*';
     font_draw_string(stars, x + 50, y + 282, COLOR_WHITE);
@@ -104,13 +106,12 @@ void draw_kali_login(uint32_t screen_w, uint32_t screen_h, const char* title) {
 void draw_desktop_icons() {
     struct { char* name; int x, y; color_t color; } icons[] = {
         {"Users",     50, 50,  0xFF00D4FF},
-        {"Docs",      50, 150, 0xFF70FF70},
-        {"Music",     50, 250, 0xFFFF7070},
-        {"Videos",    50, 350, 0xFFFFFF70},
-        {"Pictures", 150, 50,  0xFFFFA500}
+        {"Devices",   50, 150, 0xFF70FF70},
+        {"Network",   50, 250, 0xFFFF7070},
+        {"Terminal",  50, 350, 0xFFFFFF70},
+        {"Explorer", 150, 50,  0xFFFFA500}
     };
     for (int i = 0; i < 5; i++) {
-        // Mystical Symbol Icons (Geometric)
         gfx_draw_rounded_rect(icons[i].x, icons[i].y, 50, 50, 10, icons[i].color);
         gfx_draw_rect_alpha(icons[i].x + 10, icons[i].y + 10, 30, 30, 0xFFFFFFFF, 50);
         font_draw_string(icons[i].name, icons[i].x - 10, icons[i].y + 60, COLOR_WHITE);
@@ -122,6 +123,7 @@ void _start(void) {
     keyboard_init();
     mouse_init();
     user_init();
+    fs_root = ramdisk_init();
 
     if (framebuffer_request.response == NULL || framebuffer_request.response->framebuffer_count < 1) {
         hcf();
@@ -218,8 +220,19 @@ void _start(void) {
             gfx_draw_rounded_rect(main_win.x, main_win.y, main_win.w, 30, 5, title_color);
             font_draw_string("Paradox Neo-Glass Explorer", main_win.x + 10, main_win.y + 10, COLOR_WHITE);
 
-            font_draw_string("Welcome, admin", main_win.x + 20, main_win.y + 60, 0xFFAAAAAA);
-            font_draw_string("This is the future of intelligence.", main_win.x + 20, main_win.y + 100, COLOR_WHITE);
+            // Explorer File Listing
+            font_draw_string("Directory: /ramdisk/", main_win.x + 20, main_win.y + 50, 0xFFAAAAAA);
+            gfx_draw_rect(main_win.x + 20, main_win.y + 70, main_win.w - 40, 1, 0xFF444444);
+            
+            struct dirent *de;
+            int file_idx = 0;
+            while ((de = vfs_readdir(fs_root, file_idx)) != 0) {
+                gfx_draw_rect(main_win.x + 30, main_win.y + 85 + (file_idx * 30), 20, 20, COLOR_PURPLE);
+                font_draw_string(de->name, main_win.x + 60, main_win.y + 87 + (file_idx * 30), COLOR_WHITE);
+                file_idx++;
+            }
+            
+            font_draw_string("VFS initialized. System stable.", main_win.x + 20, main_win.y + main_win.h - 30, 0xFF666666);
             
             /* Taskbar */
             uint32_t bar_h = 50;

@@ -31,16 +31,6 @@ void keyboard_handler(void* frame) {
         if (scancode < sizeof(scancode_map)) {
             last_key = scancode_map[scancode];
             
-            /* Visual feedback: Draw the key pressed on the screen for debugging */
-            if (last_key && framebuffer_request.response) {
-                uint32_t height = framebuffer_request.response->framebuffers[0]->height;
-                // Clear a small area on the taskbar and draw the key
-                gfx_draw_rect(60, height - 35, 20, 20, 0xFF111111);
-                char buf[2] = {last_key, 0};
-                font_draw_string(buf, 62, height - 32, 0xFFFFFF00); // Yellow
-                gfx_swap_buffers();
-            }
-
         }
     }
 
