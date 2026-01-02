@@ -12,7 +12,7 @@ static uint32_t ramdisk_read(fs_node_t *node, uint32_t offset, uint32_t size, ui
     if (offset > node->length) return 0;
     if (offset + size > node->length) size = node->length - offset;
     
-    uint8_t *data = (uint8_t*)node->impl;
+    uint8_t *data = (uint8_t*)(uintptr_t)node->impl;
     for (uint32_t i = 0; i < size; i++) {
         buffer[i] = data[offset + i];
     }
@@ -48,7 +48,7 @@ static void ramdisk_add_file(char *name, char *contents) {
     node->name[i] = 0;
     
     node->length = k_strlen(contents);
-    node->impl = (uint32_t)(uintptr_t)contents;
+    node->impl = (uint64_t)(uintptr_t)contents;
     node->flags = FS_FILE;
     node->read = ramdisk_read;
     

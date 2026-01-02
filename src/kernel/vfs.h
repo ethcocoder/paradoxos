@@ -30,7 +30,7 @@ typedef struct fs_node {
     uint32_t flags;       // Node type
     uint32_t inode;       // Device specific
     uint32_t length;      // Size in bytes
-    uint32_t impl;        // Implementation defined
+    uint64_t impl;        // Implementation defined (Pointer in 64-bit)
     read_type_t read;
     write_type_t write;
     open_type_t open;
