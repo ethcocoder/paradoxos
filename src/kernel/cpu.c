@@ -32,9 +32,16 @@ void idt_set_descriptor(uint8_t vector, void* isr, uint8_t flags) {
 /* Generic Interrupt Handler */
 __attribute__((interrupt))
 void generic_handler(void* frame) {
-    // Just acknowledge for now
+    // Determine if it's an IRQ or an Exception
+    // For now, don't talk to PIC unless we know it's an IRQ (>= 32)
+    // Actually, we can't easily know in this generic handler without more info.
+    // Safe approach: Do nothing or HALT on exceptions.
     (void)frame;
-    __asm__ volatile ("outb %%al, %%dx" : : "a"(0x20), "d"(0x20));
+}
+
+static void pic_eoi(uint8_t irq) {
+    if (irq >= 8) outb(0xA0, 0x20);
+    outb(0x20, 0x20);
 }
 
 void cpu_init() {
@@ -58,5 +65,8 @@ void cpu_init() {
     i_ptr.base = (uint64_t)&idt;
     
     __asm__ volatile ("lidt %0" : : "m"(i_ptr));
-    __asm__ volatile ("sti"); // Re-enabled for real-time input
+}
+
+void cpu_enable_interrupts() {
+    __asm__ volatile ("sti");
 }
