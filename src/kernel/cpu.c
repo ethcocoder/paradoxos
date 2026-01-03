@@ -1,4 +1,5 @@
 #include "cpu.h"
+#include "ports.h"
 
 static struct gdt_entry gdt[5];
 static struct gdt_ptr g_ptr;
@@ -37,11 +38,6 @@ void generic_handler(void* frame) {
     // Actually, we can't easily know in this generic handler without more info.
     // Safe approach: Do nothing or HALT on exceptions.
     (void)frame;
-}
-
-static void pic_eoi(uint8_t irq) {
-    if (irq >= 8) outb(0xA0, 0x20);
-    outb(0x20, 0x20);
 }
 
 void cpu_init() {
