@@ -119,22 +119,29 @@ void draw_desktop_icons() {
 }
 
 void _start(void) {
+    if (framebuffer_request.response == NULL || framebuffer_request.response->framebuffer_count < 1) {
+        hcf();
+    }
+    struct limine_framebuffer *framebuffer = framebuffer_request.response->framebuffers[0];
+    gfx_init(framebuffer);
+    
+    // Immediate Visual Feedback
+    gfx_clear(0);
+    draw_logo(framebuffer->width / 2 - 25, framebuffer->height / 2 - 60);
+    font_draw_string("Paradox Kernel Loading...", framebuffer->width / 2 - 80, framebuffer->height - 50, COLOR_PURPLE);
+    gfx_swap_buffers();
+
     cpu_init();
     keyboard_init();
     mouse_init();
     user_init();
     fs_root = ramdisk_init();
-    cpu_enable_interrupts(); // Hardware ready
-
-    if (framebuffer_request.response == NULL || framebuffer_request.response->framebuffer_count < 1) {
-        hcf();
-    }
-
-    struct limine_framebuffer *framebuffer = framebuffer_request.response->framebuffers[0];
-    gfx_init(framebuffer);
 
     static int in_splash = 1;
     static int splash_counter = 0;
+
+    // Finally enable interrupts just before loop
+    cpu_enable_interrupts();
 
     for (;;) {
         mouse_state_t* m = mouse_get_state();
