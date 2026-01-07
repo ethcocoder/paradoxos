@@ -13,6 +13,16 @@
 #include "memory/slab.h"
 #include "ports.h"
 
+// #include "login_img.h"
+
+const char *paradox_logo_ascii = 
+    "██████╗  █████╗ ██████╗  █████╗ ██████╗  ██████╗ ██╗  ██╗\n"
+    "██╔══██╗██╔══██╗██╔══██╗██╔══██╗██╔══██╗██╔═══██╗╚██╗██╔╝\n"
+    "██████╔╝███████║██████╔╝███████║██║  ██║██║   ██║ ╚███╔╝ \n"
+    "██╔═══╝ ██╔══██║██╔══██╗██╔══██║██║  ██║██║   ██║ ██╔██╗ \n"
+    "██║     ██║  ██║██║  ██║██║  ██║██████╔╝╚██████╔╝██╔╝ ██╗\n"
+    "╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝";
+
 static void serial_write(char c) {
     while ((inb(0x3F8 + 5) & 0x20) == 0);
     outb(0x3F8, c);
@@ -24,22 +34,22 @@ static void serial_print(const char* s) {
 // #include "splash_img.h" // Disabled for stability
 // #include "login_img.h"
 
-__attribute__((used, section(".requests"), aligned(8)))
+__attribute__((used, section(".rodata"), aligned(8)))
 volatile LIMINE_BASE_REVISION(3);
 
-__attribute__((used, section(".requests"), aligned(8)))
+__attribute__((used, section(".rodata"), aligned(8)))
 volatile struct limine_framebuffer_request framebuffer_request = {
     .id = LIMINE_FRAMEBUFFER_REQUEST,
     .revision = 0
 };
 
-__attribute__((used, section(".requests"), aligned(8)))
+__attribute__((used, section(".rodata"), aligned(8)))
 volatile struct limine_memmap_request memmap_request = {
     .id = LIMINE_MEMMAP_REQUEST,
     .revision = 0
 };
 
-__attribute__((used, section(".requests"), aligned(8)))
+__attribute__((used, section(".rodata"), aligned(8)))
 volatile struct limine_hhdm_request hhdm_request = {
     .id = LIMINE_HHDM_REQUEST,
     .revision = 0
@@ -151,22 +161,41 @@ void _start(void) {
     }
     
     struct limine_framebuffer *framebuffer = framebuffer_request.response->framebuffers[0];
+    
+    // EMERGENCY DEBUG: Draw a Red Square directly to the front-buffer
+    // This proves the CPU is alive and the framebuffer address is valid.
+    uint32_t *front = (uint32_t *)framebuffer->address;
+    for (int i = 0; i < 400; i++) {
+        for (int j = 0; j < 400; j++) {
+            front[i * (framebuffer->pitch / 4) + j] = 0xFFFF0000;
+        }
+    }
+
     serial_print("[PARADOX] Graphics Initializing...\n");
     gfx_init(framebuffer);
     
     gfx_clear(0);
     draw_logo(framebuffer->width / 2 - 25, framebuffer->height / 2 - 60);
-    font_draw_string("Paradox Recovery Mode", framebuffer->width / 2 - 80, framebuffer->height - 50, COLOR_PURPLE);
+    
+    font_draw_string("Paradox Kernel v2.1 (The Assimilation)", framebuffer->width / 2 - 120, framebuffer->height / 2 + 10, COLOR_PURPLE);
+    
+    // Mini-Knut Style Welcome
+    font_draw_string("Welcome to ParadoxOS", 50, framebuffer->height - 150, 0xFF00AAFF);
+    font_draw_string("Based on KnutOS Core Architecture", 50, framebuffer->height - 130, 0xFF00AAFF);
+    font_draw_string("Physical Memory Manager: READY", 50, framebuffer->height - 100, 0xFF00FF00);
+    font_draw_string("Slab Allocator: READY", 50, framebuffer->height - 80, 0xFF00FF00);
+    
     gfx_swap_buffers();
     serial_print("[PARADOX] Splash Drawn.\n");
 
-    /* Temporary Bypass for Testing */
-    /*
+    // Memory Setup (Raid from KnutOS) - RE-ENABLED
     if (memmap_request.response) {
+        serial_print("[PARADOX] Initializing PMM...\n");
         pmm_init(memmap_request.response);
+        serial_print("[PARADOX] PMM Ready. Initializing Slab...\n");
         slab_init();
+        serial_print("[PARADOX] Memory System Ready.\n");
     }
-    */
 
     cpu_init();
     keyboard_init();
