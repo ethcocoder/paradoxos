@@ -9,14 +9,13 @@ PHDRS
 
 SECTIONS
 {
-    /* Move to high-half */
     . = 0xffffffff80000000;
 
     .text : {
         *(.text .text.*)
-        KEEP(*(.requests))
-        *(.requests.*)
     } :text
+
+    . = ALIGN(4096);
 
     .rodata : {
         *(.rodata .rodata.*)
