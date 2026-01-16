@@ -100,8 +100,6 @@ void draw_kali_login(uint32_t screen_w, uint32_t screen_h, const char* title) {
     if (sys_state == SYS_STATE_LOGIN)
         font_draw_string("Press 'R' to Register", x + 100, y + 370, COLOR_PURPLE);
 }
-    
-}
 
 void draw_desktop_icons() {
     struct { char* name; int x, y; color_t color; } icons[] = {
