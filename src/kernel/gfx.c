@@ -2,7 +2,7 @@
 
 static framebuffer_t back_buffer;
 static framebuffer_t front_buffer;
-static uint32_t buffer_data[1920 * 1080]; // Temporary backbuffer (Static for now to avoid complexity)
+static uint32_t buffer_data[1280 * 800]; // SAFE MODE: Small buffer
 
 void gfx_init(struct limine_framebuffer *fb) {
     front_buffer.address = (uint32_t *)fb->address;
@@ -11,9 +11,10 @@ void gfx_init(struct limine_framebuffer *fb) {
     front_buffer.pitch = fb->pitch;
 
     back_buffer.address = buffer_data;
-    back_buffer.width = fb->width;
-    back_buffer.height = fb->height;
-    back_buffer.pitch = fb->width * 4;
+    // CLAMPING: Force internal resolution to max 1280x800 to prevent overflow
+    back_buffer.width = (fb->width > 1280) ? 1280 : fb->width;
+    back_buffer.height = (fb->height > 800) ? 800 : fb->height;
+    back_buffer.pitch = back_buffer.width * 4;
 }
 
 void gfx_put_pixel(uint32_t x, uint32_t y, color_t color) {
@@ -117,9 +118,9 @@ void gfx_clear(color_t color) {
 }
 
 void gfx_swap_buffers() {
-    /* Copy backbuffer to frontbuffer */
-    for (uint32_t i = 0; i < front_buffer.height; i++) {
-        for (uint32_t j = 0; j < front_buffer.width; j++) {
+    /* Copy backbuffer to frontbuffer (Clamped Region Only) */
+    for (uint32_t i = 0; i < back_buffer.height; i++) {
+        for (uint32_t j = 0; j < back_buffer.width; j++) {
             front_buffer.address[i * (front_buffer.pitch / 4) + j] = back_buffer.address[i * (back_buffer.width) + j];
         }
     }
