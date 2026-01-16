@@ -37,12 +37,27 @@ ParadoxOS is built on a 5-layer architecture:
     -   Create a new VM.
     -   Select `build/paradoxos.iso` as the installer disc image.
 
-## 📅 Roadmap
--   **Phase 1**: Kernel Bootstrap & Bootloader (Current)
--   **Phase 2**: Basic Desktop & Graphics
--   **Phase 3**: Hardware Drivers
--   **Phase 4**: Intelligent Optimization
--   **Phase 5**: Complete Visual Identity & Theming
+## 📅 Strategic Roadmap (Evolutionary Path)
+
+### 🧱 Phase 1-3: Core Foundation (The Bootstrapping)
+- ✅ **Phase 1**: Kernel Bootstrap & Bootloader (Multiboot2/UEFI).
+- ✅ **Phase 2**: Basic Desktop, Framebuffer Graphics & Bitmap Fonts.
+- 🚧 **Phase 3**: Core Hardware Drivers (GDT/IDT, Keyboard, PS/2 Mouse).
+
+### 🎨 Phase 4-5: Identity & Intelligence (The Experience)
+- [ ] **Phase 4**: **Intelligent Optimization**: Dynamic performance scaling & usage analytics.
+- [ ] **Phase 5**: **Complete Visual Identity**: Compositor, animations, and "Void/Aurora" themes.
+
+### 🚀 Phase 6+: Linux-Inspired Evolution (The Production Grade)
+Inspired by modern Linux Kernel (2024-2025) long-term goals:
+- [ ] **Memory Safety**: Integration of **Rust** for kernel modules to eliminate memory-related vulnerabilities.
+- [ ] **Scalability**: **SMP (Symmetric Multiprocessing)** support to leverage multiple CPU cores.
+- [ ] **Performance**: Advanced O(1) Scheduler and **Lock-Free** data structures.
+- [ ] **Security Hardening**: **KASLR** (Kernel Address Space Layout Randomization) and Capability-based security.
+- [ ] **Modern Networking**: Implementation of a TCP/IP stack with Wi-Fi 7 and IPv6 support.
+- [ ] **Advanced Filesystems**: ParadoxFS featuring atomic journaling and fast indexing (Linux Btrfs inspired).
+- [ ] **Real-Time capabilities**: Implementation of a fully preemptible kernel for low-latency tasks.
+
 
 ---
 *Powered by the ParadoxOS Team*
