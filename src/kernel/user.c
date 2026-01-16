@@ -18,6 +18,12 @@ static void k_strcpy(char* dest, const char* src) {
     while ((*dest++ = *src++));
 }
 
+int k_strlen(const char* s) {
+    int i = 0;
+    while (s[i]) i++;
+    return i;
+}
+
 void user_init() {
     // Create a default administrator user for production testing
     user_register("admin", "1234");

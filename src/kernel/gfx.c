@@ -96,6 +96,19 @@ void gfx_draw_gradient(uint32_t x, uint32_t y, uint32_t w, uint32_t h, color_t c
     }
 }
 
+void gfx_draw_image(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint32_t* data) {
+    for (uint32_t i = 0; i < h; i++) {
+        for (uint32_t j = 0; j < w; j++) {
+            uint32_t color = data[i * w + j];
+            uint8_t alpha = (color >> 24) & 0xFF;
+            if (alpha == 255) {
+                gfx_put_pixel(x + j, y + i, color);
+            } else if (alpha > 0) {
+                gfx_blend_pixel(x + j, y + i, color, alpha);
+            }
+        }
+    }
+}
 
 void gfx_clear(color_t color) {
     for (uint32_t i = 0; i < back_buffer.width * back_buffer.height; i++) {

@@ -16,6 +16,12 @@ static const char scancode_map[] = {
 
 static char last_key = 0;
 
+char keyboard_get_last_key() {
+    char c = last_key;
+    last_key = 0; // Consume the key
+    return c;
+}
+
 __attribute__((interrupt))
 void keyboard_handler(void* frame) {
     uint8_t scancode = inb(0x60);

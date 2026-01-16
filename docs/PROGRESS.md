@@ -15,5 +15,9 @@
     -   Keyboard driver implemented with ASCII mapping.
     -   **PS/2 Mouse Driver** implemented with real-time coordinate tracking.
     -   Project pushed to GitHub: https://github.com/ethcocoder/paradoxos.git
--   **Phase 2.5 (Interactivity)**:
-    -   [In Progress] Implementing **Window Dragging** and real-time UI interaction.
+-   **Phase 4 (Production Readiness)**:
+    -   Implemented **Image Support** by converting PNGs to kernel-linkable C arrays.
+    -   Added **Splash Screen** with 'Cosmic Awakening' imagery.
+    -   Implemented **Kali Linux inspired Login/Register** layout (translucent fields, title logo).
+    -   Added **Keyboard String Input** (buffers, cursor, backspace, TAB switching).
+    -   Created real **User Registration** system (register a user, then login with it).

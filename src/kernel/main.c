@@ -7,6 +7,8 @@
 #include "keyboard.h"
 #include "mouse.h"
 #include "user.h"
+#include "splash_img.h"
+#include "login_img.h"
 
 __attribute__((used, section(".requests")))
 volatile LIMINE_BASE_REVISION(3);
@@ -43,29 +45,57 @@ void draw_logo(uint32_t x, uint32_t y) {
     gfx_draw_rect(x + 15, y + 5, 20, 25, 0xFF111111); // Hole in P
 }
 
-void draw_login_screen(uint32_t screen_w, uint32_t screen_h) {
-    gfx_draw_gradient(0, 0, screen_w, screen_h, 0xFF050510, 0xFF101025);
+static char input_buffer[MAX_NAME_LEN] = {0};
+static char pass_buffer[MAX_NAME_LEN] = {0};
+static int input_ptr = 0;
+static int pass_ptr = 0;
+static int input_focus = 0; // 0 = Username, 1 = Password
+
+void draw_splash_screen(uint32_t screen_w, uint32_t screen_h) {
+    // Background Image
+    gfx_draw_image(0, 0, splash_img_width, splash_img_height, splash_img_data);
     
-    // Aurora Flow (Mock: shifting colors or particles)
-    for(int i=0; i<5; i++) {
-        gfx_draw_rect_alpha(i*200, 100 + i*50, 400, 100, COLOR_ACCENT, 30);
+    // Pulse text
+    if (((uint32_t)(__builtin_ia32_rdtsc() / 300000000) % 2) == 0) {
+        font_draw_string("Press ANY KEY to Start", screen_w / 2 - 80, screen_h - 100, COLOR_WHITE);
     }
+}
 
-    uint32_t card_w = 400, card_h = 350;
-    uint32_t card_x = (screen_w - card_w) / 2;
-    uint32_t card_y = (screen_h - card_h) / 2;
+void draw_kali_login(uint32_t screen_w, uint32_t screen_h, const char* title) {
+    // Background Image
+    gfx_draw_image(0, 0, login_img_width, login_img_height, login_img_data);
     
-    // Glass Card
-    gfx_draw_rect_alpha(card_x, card_y, card_w, card_h, 0xFF333333, 150);
-    gfx_draw_rounded_rect(card_x, card_y, card_w, 2, 0, COLOR_PURPLE);
+    // Central Box (Kali Style)
+    uint32_t w = 360, h = 420;
+    uint32_t x = (screen_w - w) / 2;
+    uint32_t y = (screen_h - h) / 2;
     
-    draw_logo(card_x + 175, card_y + 40);
-    font_draw_string("PARADOX OS", card_x + 150, card_y + 110, COLOR_WHITE);
-    font_draw_string("Cosmic Awakening", card_x + 140, card_y + 130, 0xFFAAAAAA);
+    gfx_draw_rect_alpha(x, y, w, h, 0x111111, 230); // Transparent black
+    gfx_draw_rect(x, y, w, 2, COLOR_PURPLE); // Accent top
+    
+    draw_logo(x + 155, y + 40);
+    font_draw_string("PARADOX OS", x + 135, y + 110, COLOR_WHITE);
+    font_draw_string(title, x + (w - (k_strlen(title) * 8)) / 2, y + 130, 0xFFAAAAAA);
+    
+    // Username
+    font_draw_string("Username", x + 40, y + 180, 0xFFAAAAAA);
+    gfx_draw_rect_alpha(x + 40, y + 200, 280, 40, 0x000000, 180);
+    font_draw_string(input_buffer, x + 50, y + 212, COLOR_WHITE);
+    if (input_focus == 0 && ((uint32_t)(__builtin_ia32_rdtsc() / 150000000) % 2 == 0))
+        gfx_draw_rect(x + 50 + (input_ptr * 8), y + 212, 2, 16, COLOR_WHITE);
 
-    gfx_draw_rect_alpha(card_x + 160, card_y + 160, 80, 80, 0xFF444444, 100);
-    gfx_draw_rect_alpha(card_x + 50, card_y + 260, 300, 40, 0xFF000000, 150);
-    font_draw_string("Click to Login", card_x + 140, card_y + 272, 0xFF888888);
+    // Password
+    font_draw_string("Password", x + 40, y + 250, 0xFFAAAAAA);
+    gfx_draw_rect_alpha(x + 40, y + 270, 280, 40, 0x000000, 180);
+    char stars[MAX_NAME_LEN] = {0};
+    for(int i=0; i<pass_ptr; i++) stars[i] = '*';
+    font_draw_string(stars, x + 50, y + 282, COLOR_WHITE);
+    if (input_focus == 1 && ((uint32_t)(__builtin_ia32_rdtsc() / 150000000) % 2 == 0))
+        gfx_draw_rect(x + 50 + (pass_ptr * 8), y + 282, 2, 16, COLOR_WHITE);
+
+    font_draw_string("TAB: Switch | ENTER: Login", x + 60, y + 340, 0xFF666666);
+    if (sys_state == SYS_STATE_LOGIN)
+        font_draw_string("Press 'R' to Register", x + 100, y + 370, COLOR_PURPLE);
 }
 
 void draw_desktop_icons() {
@@ -97,38 +127,64 @@ void _start(void) {
     struct limine_framebuffer *framebuffer = framebuffer_request.response->framebuffers[0];
     gfx_init(framebuffer);
 
-    // Boot Animation: Fade In (Cosmic Awakening)
-    for(int alpha=0; alpha<=255; alpha+=15) {
-        gfx_clear(0);
-        gfx_draw_rect_alpha(framebuffer->width/2 - 50, framebuffer->height/2 - 50, 100, 100, COLOR_PURPLE, alpha);
-        font_draw_string("Awakening...", framebuffer->width/2 - 40, framebuffer->height/2 + 60, (alpha << 24) | 0xFFFFFF);
-        gfx_swap_buffers();
-    }
-
-    window_t main_win = {
-        .x = (framebuffer->width - 700) / 2,
-        .y = (framebuffer->height - 500) / 2,
-        .w = 700, .h = 500, .is_dragging = 0
-    };
+    static int in_splash = 1;
 
     for (;;) {
         mouse_state_t* m = mouse_get_state();
+        char key = keyboard_get_last_key();
 
         // Trail Logic
         trail_x[trail_ptr] = m->x;
         trail_y[trail_ptr] = m->y;
         trail_ptr = (trail_ptr + 1) % MAX_TRAILS;
 
-        if (sys_state == SYS_STATE_LOGIN) {
-            draw_login_screen(framebuffer->width, framebuffer->height);
-            if (m->left_button && (uint64_t)m->x > (framebuffer->width/2 - 200) && (uint64_t)m->x < (framebuffer->width/2 + 200) &&
-                (uint64_t)m->y > (framebuffer->height/2 + 80)) {
-                if (user_login("admin", "1234")) {
-                    sys_state = SYS_STATE_DESKTOP;
-                }
+        if (in_splash) {
+            draw_splash_screen(framebuffer->width, framebuffer->height);
+            if (key != 0) in_splash = 0;
+            gfx_swap_buffers();
+            continue;
+        }
+
+        /* Input Handling */
+        if (sys_state == SYS_STATE_LOGIN || sys_state == SYS_STATE_REGISTER) {
+            if (key == '\t') input_focus = !input_focus;
+            else if (key == '\b') {
+                if (input_focus == 0 && input_ptr > 0) input_buffer[--input_ptr] = 0;
+                else if (input_focus == 1 && pass_ptr > 0) pass_buffer[--pass_ptr] = 0;
             }
+            else if (key == '\n') {
+                if (sys_state == SYS_STATE_LOGIN) {
+                    if (user_login(input_buffer, pass_buffer)) sys_state = SYS_STATE_DESKTOP;
+                } else {
+                    if (user_register(input_buffer, pass_buffer)) sys_state = SYS_STATE_LOGIN;
+                }
+                for(int i=0; i<MAX_NAME_LEN; i++) input_buffer[i] = pass_buffer[i] = 0;
+                input_ptr = pass_ptr = 0;
+            }
+            else if (key == 'r' && sys_state == SYS_STATE_LOGIN) {
+                sys_state = SYS_STATE_REGISTER;
+                input_ptr = pass_ptr = 0;
+            }
+            else if (key != 0 && key >= 32 && key <= 126) {
+                if (input_focus == 0 && input_ptr < MAX_NAME_LEN - 1) input_buffer[input_ptr++] = key;
+                else if (input_focus == 1 && pass_ptr < MAX_NAME_LEN - 1) pass_buffer[pass_ptr++] = key;
+            }
+        }
+
+        if (sys_state == SYS_STATE_LOGIN) {
+            draw_kali_login(framebuffer->width, framebuffer->height, "Paradox Login");
+        } else if (sys_state == SYS_STATE_REGISTER) {
+            draw_kali_login(framebuffer->width, framebuffer->height, "User Registration");
         } else {
             /* Desktop Logic */
+            static window_t main_win;
+            static int win_init = 0;
+            if (!win_init) {
+                main_win.x = (framebuffer->width - 700) / 2;
+                main_win.y = (framebuffer->height - 500) / 2;
+                main_win.w = 700; main_win.h = 500;
+                win_init = 1;
+            }
             if (m->left_button) {
                 if (!main_win.is_dragging) {
                     if (m->x >= main_win.x && m->x <= main_win.x + main_win.w &&
