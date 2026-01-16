@@ -58,21 +58,52 @@ void draw_splash_screen(uint32_t screen_w, uint32_t screen_h) {
 
     // Pulse text
     if (((uint32_t)(__builtin_ia32_rdtsc() / 200000000) % 2) == 0) {
-        font_draw_string("Loading...", screen_w / 2 - 70, screen_h - 100, COLOR_WHITE);
+        font_draw_string("Press ANY KEY to Start", screen_w / 2 - 80, screen_h - 100, COLOR_WHITE);
     }
 }
 
 void draw_kali_login(uint32_t screen_w, uint32_t screen_h, const char* title) {
-    // DEBUG: Fill Green to prove we reached here and loop is alive
-    gfx_clear(0xFF005500); 
-    font_draw_string("DEBUG MODE: Login Screen", 100, 100, COLOR_WHITE);
+    // Procedural Background (Restored)
+    gfx_draw_gradient(0, 0, screen_w, screen_h, 0xFF050510, 0xFF101025);
+    
+    // Central Box (Kali Style)
+    uint32_t w = 360, h = 420;
+    uint32_t x = (screen_w - w) / 2;
+    uint32_t y = (screen_h - h) / 2;
+    
+    // Shadow & Glass Body
+    gfx_draw_rect_alpha(x + 10, y + 10, w, h, 0x000000, 150);
+    gfx_draw_rect_alpha(x, y, w, h, 0x111111, 230); // Transparent black
+    gfx_draw_rect(x, y, w, 2, COLOR_PURPLE); // Accent top
+    
+    draw_logo(x + 155, y + 40);
+    font_draw_string("PARADOX OS", x + 135, y + 110, COLOR_WHITE);
+    font_draw_string(title, x + (w - (k_strlen(title) * 8)) / 2, y + 130, 0xFFAAAAAA);
+    
+    // Username
+    font_draw_string("Username", x + 40, y + 180, 0xFFAAAAAA);
+    gfx_draw_rect_alpha(x + 40, y + 200, 280, 40, 0x000000, 180);
+    font_draw_string(input_buffer, x + 50, y + 212, COLOR_WHITE);
+    if (input_focus == 0 && ((uint32_t)(__builtin_ia32_rdtsc() / 150000000) % 2 == 0))
+        gfx_draw_rect(x + 50 + (input_ptr * 8), y + 212, 2, 16, COLOR_WHITE);
+
+    // Password
+    font_draw_string("Password", x + 40, y + 250, 0xFFAAAAAA);
+    gfx_draw_rect_alpha(x + 40, y + 270, 280, 40, 0x000000, 180);
+    char stars[MAX_NAME_LEN] = {0};
+    for(int i=0; i<pass_ptr; i++) stars[i] = '*';
+    font_draw_string(stars, x + 50, y + 282, COLOR_WHITE);
+    if (input_focus == 1 && ((uint32_t)(__builtin_ia32_rdtsc() / 150000000) % 2 == 0))
+        gfx_draw_rect(x + 50 + (pass_ptr * 8), y + 282, 2, 16, COLOR_WHITE);
+
+    font_draw_string("TAB: Switch | ENTER: Login", x + 60, y + 340, 0xFF666666);
+    if (sys_state == SYS_STATE_LOGIN)
+        font_draw_string("Press 'R' to Register", x + 100, y + 370, COLOR_PURPLE);
+}
     
     // Test Mouse Drawing explicitly here to be safe
     // gfx_draw_rect(100, 200, 50, 50, COLOR_ACCENT);
     
-    /* 
-    // RESTORE LATER
-    // Procedural Background (Safe Mode)
     gfx_draw_gradient(0, 0, screen_w, screen_h, 0xFF050510, 0xFF101025);
     
     // Central Box (Kali Style)
@@ -153,7 +184,8 @@ void _start(void) {
         if (in_splash) {
             draw_splash_screen(framebuffer->width, framebuffer->height);
             splash_counter++;
-            if (splash_counter > 150) in_splash = 0; // Auto-transition
+            // Auto-transition after approx 200 frames (longer delay for logo visibility)
+            if (splash_counter > 200) in_splash = 0; 
             gfx_swap_buffers();
             continue;
         }
