@@ -58,7 +58,7 @@ void draw_splash_screen(uint32_t screen_w, uint32_t screen_h) {
 
     // Pulse text
     if (((uint32_t)(__builtin_ia32_rdtsc() / 200000000) % 2) == 0) {
-        font_draw_string("Press ANY KEY to Start", screen_w / 2 - 80, screen_h - 100, COLOR_WHITE);
+        font_draw_string("Loading ParadoxOS...", screen_w / 2 - 70, screen_h - 100, COLOR_WHITE);
     }
 }
 
