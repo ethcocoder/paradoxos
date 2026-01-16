@@ -35,6 +35,7 @@ struct idt_ptr {
 } __attribute__((packed));
 
 void cpu_init();
+void cpu_enable_interrupts();
 void idt_set_descriptor(uint8_t vector, void* isr, uint8_t flags);
 
 #endif

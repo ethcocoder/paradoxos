@@ -124,6 +124,7 @@ void _start(void) {
     mouse_init();
     user_init();
     fs_root = ramdisk_init();
+    cpu_enable_interrupts(); // Hardware ready
 
     if (framebuffer_request.response == NULL || framebuffer_request.response->framebuffer_count < 1) {
         hcf();
