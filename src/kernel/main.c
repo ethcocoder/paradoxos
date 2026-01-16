@@ -58,11 +58,20 @@ void draw_splash_screen(uint32_t screen_w, uint32_t screen_h) {
 
     // Pulse text
     if (((uint32_t)(__builtin_ia32_rdtsc() / 200000000) % 2) == 0) {
-        font_draw_string("Loading ParadoxOS...", screen_w / 2 - 70, screen_h - 100, COLOR_WHITE);
+        font_draw_string("Loading...", screen_w / 2 - 70, screen_h - 100, COLOR_WHITE);
     }
 }
 
 void draw_kali_login(uint32_t screen_w, uint32_t screen_h, const char* title) {
+    // DEBUG: Fill Green to prove we reached here and loop is alive
+    gfx_clear(0xFF005500); 
+    font_draw_string("DEBUG MODE: Login Screen", 100, 100, COLOR_WHITE);
+    
+    // Test Mouse Drawing explicitly here to be safe
+    // gfx_draw_rect(100, 200, 50, 50, COLOR_ACCENT);
+    
+    /* 
+    // RESTORE LATER
     // Procedural Background (Safe Mode)
     gfx_draw_gradient(0, 0, screen_w, screen_h, 0xFF050510, 0xFF101025);
     
@@ -97,6 +106,7 @@ void draw_kali_login(uint32_t screen_w, uint32_t screen_h, const char* title) {
     font_draw_string("TAB: Switch | ENTER: Login", x + 60, y + 340, 0xFF666666);
     if (sys_state == SYS_STATE_LOGIN)
         font_draw_string("Press 'R' to Register", x + 100, y + 370, COLOR_PURPLE);
+    */
 }
 
 void draw_desktop_icons() {
