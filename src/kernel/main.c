@@ -63,17 +63,17 @@ void draw_splash_screen(uint32_t screen_w, uint32_t screen_h) {
 }
 
 void draw_kali_login(uint32_t screen_w, uint32_t screen_h, const char* title) {
-    // Procedural Background (Restored)
-    gfx_draw_gradient(0, 0, screen_w, screen_h, 0xFF050510, 0xFF101025);
+    // Procedural Background (DEBUG: Solid Color)
+    gfx_clear(0xFF101025); 
     
     // Central Box (Kali Style)
     uint32_t w = 360, h = 420;
     uint32_t x = (screen_w - w) / 2;
     uint32_t y = (screen_h - h) / 2;
     
-    // Shadow & Glass Body
-    gfx_draw_rect_alpha(x + 10, y + 10, w, h, 0x000000, 150);
-    gfx_draw_rect_alpha(x, y, w, h, 0x111111, 230); // Transparent black
+    // Shadow & Glass Body (DEBUG: Solid)
+    gfx_draw_rect(x + 10, y + 10, w, h, 0xFF000000); // Shadow
+    gfx_draw_rect(x, y, w, h, 0xFF222222); // Body
     gfx_draw_rect(x, y, w, 2, COLOR_PURPLE); // Accent top
     
     draw_logo(x + 155, y + 40);
@@ -82,14 +82,14 @@ void draw_kali_login(uint32_t screen_w, uint32_t screen_h, const char* title) {
     
     // Username
     font_draw_string("Username", x + 40, y + 180, 0xFFAAAAAA);
-    gfx_draw_rect_alpha(x + 40, y + 200, 280, 40, 0x000000, 180);
+    gfx_draw_rect(x + 40, y + 200, 280, 40, 0xFF000000);
     font_draw_string(input_buffer, x + 50, y + 212, COLOR_WHITE);
     if (input_focus == 0 && ((uint32_t)(__builtin_ia32_rdtsc() / 150000000) % 2 == 0))
         gfx_draw_rect(x + 50 + (input_ptr * 8), y + 212, 2, 16, COLOR_WHITE);
 
     // Password
     font_draw_string("Password", x + 40, y + 250, 0xFFAAAAAA);
-    gfx_draw_rect_alpha(x + 40, y + 270, 280, 40, 0x000000, 180);
+    gfx_draw_rect(x + 40, y + 270, 280, 40, 0xFF000000);
     char stars[MAX_NAME_LEN] = {0};
     for(int i=0; i<pass_ptr; i++) stars[i] = '*';
     font_draw_string(stars, x + 50, y + 282, COLOR_WHITE);
