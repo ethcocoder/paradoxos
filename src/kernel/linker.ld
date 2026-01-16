@@ -9,20 +9,19 @@ PHDRS
 
 SECTIONS
 {
-    /* We want to act as a high-half kernel, so we move to 0xffffffff80000000 */
+    /* Move to high-half */
     . = 0xffffffff80000000;
 
-    .text : {
-        *(.text .text.*)
+    .requests : {
+        KEEP(*(.requests))
+        *(.requests.*)
     } :text
 
     . = ALIGN(4096);
 
-    .requests : {
-        KEEP(*(.requests))
-    } :rodata
-
-    . = ALIGN(4096);
+    .text : {
+        *(.text .text.*)
+    } :text
 
     .rodata : {
         *(.rodata .rodata.*)
