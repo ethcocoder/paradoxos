@@ -18,13 +18,62 @@ void gfx_init(struct limine_framebuffer *fb) {
 
 void gfx_put_pixel(uint32_t x, uint32_t y, color_t color) {
     if (x >= back_buffer.width || y >= back_buffer.height) return;
-    back_buffer.address[y * (back_buffer.pitch / 4) + x] = color;
+    back_buffer.address[y * (back_buffer.width) + x] = color;
+}
+
+void gfx_blend_pixel(uint32_t x, uint32_t y, color_t color, uint8_t alpha) {
+    if (x >= back_buffer.width || y >= back_buffer.height) return;
+    
+    uint32_t idx = y * (back_buffer.width) + x;
+    color_t bg = back_buffer.address[idx];
+
+    uint8_t r_bg = (bg >> 16) & 0xFF;
+    uint8_t g_bg = (bg >> 8) & 0xFF;
+    uint8_t b_bg = bg & 0xFF;
+
+    uint8_t r_fg = (color >> 16) & 0xFF;
+    uint8_t g_fg = (color >> 8) & 0xFF;
+    uint8_t b_fg = color & 0xFF;
+
+    uint8_t r = ((r_fg * alpha) + (r_bg * (255 - alpha))) / 255;
+    uint8_t g = ((g_fg * alpha) + (g_bg * (255 - alpha))) / 255;
+    uint8_t b = ((b_fg * alpha) + (b_bg * (255 - alpha))) / 255;
+
+    back_buffer.address[idx] = (0xFF << 24) | (r << 16) | (g << 8) | b;
 }
 
 void gfx_draw_rect(uint32_t x, uint32_t y, uint32_t w, uint32_t h, color_t color) {
     for (uint32_t i = 0; i < h; i++) {
         for (uint32_t j = 0; j < w; j++) {
             gfx_put_pixel(x + j, y + i, color);
+        }
+    }
+}
+
+void gfx_draw_rect_alpha(uint32_t x, uint32_t y, uint32_t w, uint32_t h, color_t color, uint8_t alpha) {
+    for (uint32_t i = 0; i < h; i++) {
+        for (uint32_t j = 0; j < w; j++) {
+            gfx_blend_pixel(x + j, y + i, color, alpha);
+        }
+    }
+}
+
+void gfx_draw_rounded_rect(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint32_t r, color_t color) {
+    for (uint32_t i = 0; i < h; i++) {
+        for (uint32_t j = 0; j < w; j++) {
+            int dx = 0, dy = 0;
+            int is_corner = 0;
+
+            if (j < r && i < r) { dx = r - j; dy = r - i; is_corner = 1; }
+            else if (j > w - r - 1 && i < r) { dx = j - (w - r - 1); dy = r - i; is_corner = 1; }
+            else if (j < r && i > h - r - 1) { dx = r - j; dy = i - (h - r - 1); is_corner = 1; }
+            else if (j > w - r - 1 && i > h - r - 1) { dx = j - (w - r - 1); dy = i - (h - r - 1); is_corner = 1; }
+
+            if (is_corner) {
+                if (dx * dx + dy * dy <= r * r) gfx_put_pixel(x + j, y + i, color);
+            } else {
+                gfx_put_pixel(x + j, y + i, color);
+            }
         }
     }
 }

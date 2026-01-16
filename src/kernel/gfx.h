@@ -21,7 +21,10 @@ typedef struct {
 
 void gfx_init(struct limine_framebuffer *fb);
 void gfx_put_pixel(uint32_t x, uint32_t y, color_t color);
+void gfx_blend_pixel(uint32_t x, uint32_t y, color_t color, uint8_t alpha);
 void gfx_draw_rect(uint32_t x, uint32_t y, uint32_t w, uint32_t h, color_t color);
+void gfx_draw_rect_alpha(uint32_t x, uint32_t y, uint32_t w, uint32_t h, color_t color, uint8_t alpha);
+void gfx_draw_rounded_rect(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint32_t r, color_t color);
 void gfx_draw_gradient(uint32_t x, uint32_t y, uint32_t w, uint32_t h, color_t c1, color_t c2);
 void gfx_clear(color_t color);
 
