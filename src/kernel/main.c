@@ -11,25 +11,35 @@
 #include "ramdisk.h"
 #include "memory/pmm.h"
 #include "memory/slab.h"
+#include "ports.h"
+
+static void serial_write(char c) {
+    while ((inb(0x3F8 + 5) & 0x20) == 0);
+    outb(0x3F8, c);
+}
+
+static void serial_print(const char* s) {
+    while (*s) serial_write(*s++);
+}
 // #include "splash_img.h" // Disabled for stability
 // #include "login_img.h"
 
-__attribute__((used, section(".requests"), aligned(64)))
+__attribute__((used, section(".requests"), aligned(8)))
 volatile LIMINE_BASE_REVISION(3);
 
-__attribute__((used, section(".requests"), aligned(64)))
+__attribute__((used, section(".requests"), aligned(8)))
 volatile struct limine_framebuffer_request framebuffer_request = {
     .id = LIMINE_FRAMEBUFFER_REQUEST,
     .revision = 0
 };
 
-__attribute__((used, section(".requests"), aligned(64)))
+__attribute__((used, section(".requests"), aligned(8)))
 volatile struct limine_memmap_request memmap_request = {
     .id = LIMINE_MEMMAP_REQUEST,
     .revision = 0
 };
 
-__attribute__((used, section(".requests"), aligned(64)))
+__attribute__((used, section(".requests"), aligned(8)))
 volatile struct limine_hhdm_request hhdm_request = {
     .id = LIMINE_HHDM_REQUEST,
     .revision = 0
@@ -133,29 +143,37 @@ void draw_desktop_icons() {
 }
 
 void _start(void) {
+    serial_print("\n[PARADOX] Entry Point Reached.\n");
+
     if (framebuffer_request.response == NULL || framebuffer_request.response->framebuffer_count < 1) {
+        serial_print("[PARADOX] ERROR: Framebuffer response is NULL!\n");
         hcf();
     }
+    
     struct limine_framebuffer *framebuffer = framebuffer_request.response->framebuffers[0];
+    serial_print("[PARADOX] Graphics Initializing...\n");
     gfx_init(framebuffer);
     
-    // Immediate Visual Feedback (Like KnutOS)
     gfx_clear(0);
     draw_logo(framebuffer->width / 2 - 25, framebuffer->height / 2 - 60);
-    font_draw_string("Paradox Engine v2 - Initializing...", framebuffer->width / 2 - 100, framebuffer->height - 50, COLOR_PURPLE);
+    font_draw_string("Paradox Recovery Mode", framebuffer->width / 2 - 80, framebuffer->height - 50, COLOR_PURPLE);
     gfx_swap_buffers();
+    serial_print("[PARADOX] Splash Drawn.\n");
 
-    // Memory Setup (CRITICAL: Do this after showing the logo)
+    /* Temporary Bypass for Testing */
+    /*
     if (memmap_request.response) {
         pmm_init(memmap_request.response);
         slab_init();
     }
+    */
 
     cpu_init();
     keyboard_init();
     mouse_init();
     user_init();
     fs_root = ramdisk_init();
+    serial_print("[PARADOX] Hardware Drivers Loaded.\n");
 
     static int in_splash = 1;
     static int splash_counter = 0;
