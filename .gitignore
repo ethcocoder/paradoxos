@@ -1,9 +1,0 @@
-build/
-scripts/xorriso.exe
-scripts/cygwin1.dll
-scripts/cygiconv-2.dll
-*.o
-*.elf
-*.iso
-.gemini/
-.agent/

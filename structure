@@ -1,0 +1,68 @@
+This is the Definitive Project Structure for Paradox OS.
+This structure mimics a professional kernel environment (like Linux or BSD) but is streamlined for a modern "from scratch" build using Limine (Bootloader) and GCC (Compiler).
+Create a root folder named paradox-os and create exactly these subfolders and files inside it.
+📂 Root Directory: paradox-os/
+This is your workspace.
+File / Folder	Purpose
+📁 build/	Stores the compiled ISO image (paradox.iso).
+📁 objs/	Stores temporary .o files (keeps source folders clean).
+📁 limine/	Contains the Limine bootloader binary and headers.
+📁 src/	The Source Code. (See below for details).
+📁 assets/	Fonts, Icons, Wallpapers, and Bitmaps.
+📄 Makefile	The automation script to compile everything.
+📄 linker.ld	The map telling the CPU where to put code in RAM.
+📄 limine.cfg	Configuration file for the boot menu.
+📂 The Source Directory: src/
+This is where the magic happens. We separate Interface (Header files) from Implementation (C files).
+1. src/include/ (The Blueprints)
+Header files (.h) go here. This defines how different parts of the OS talk to each other.
+code
+Text
+src/include/
+├── paradox.h             # Global definitions (types, macros)
+├── kernel.h              # Main kernel entry definitions
+├── drivers/
+│   ├── framebuffer.h     # Video graphics definitions
+│   ├── serial.h          # Debugging logging definitions
+│   └── keyboard.h        # Keyboard scancodes
+├── mm/
+│   ├── pmm.h             # Physical Memory Manager headers
+│   └── vmm.h             # Virtual Memory Manager headers
+├── arch/
+│   ├── gdt.h             # Global Descriptor Table
+│   └── idt.h             # Interrupt Descriptor Table
+└── lib/
+    ├── string.h          # String manipulation (strlen, memcpy)
+    └── stdio.h           # Printf implementation
+2. src/kernel/ (The Brain)
+The actual C code (.c) and Assembly (.S).
+code
+Text
+src/kernel/
+├── main.c                # KERNEL ENTRY POINT (Start here)
+├── startup.c             # Initialization logic (Phase 1)
+│
+├── arch/                 # Architecture Specifics (x86_64)
+│   ├── entry.S           # Assembly entry point (hooks into Limine)
+│   ├── gdt.c             # Sets up memory segmentation
+│   ├── idt.c             # Sets up interrupt handling
+│   └── interrupts.S      # Assembly wrappers for interrupts
+│
+├── drivers/              # Hardware Drivers
+│   ├── video/
+│   │   └── framebuffer.c # Drawing pixels to screen
+│   ├── input/
+│   │   └── keyboard.c    # PS/2 Keyboard logic
+│   └── serial/
+│       └── serial.c      # Logging to QEMU console
+│
+├── mm/                   # Memory Management
+│   ├── pmm.c             # Physical RAM allocator
+│   └── vmm.c             # Paging / Virtual memory logic
+│
+├── sched/                # The Paradox Scheduler
+│   └── scheduler.c       # Task switching logic
+│
+└── lib/                  # Kernel Standard Library
+    ├── string.c          # memcpy, memset, strlen implementation
+    └── printk.c          # Custom "printf" for the kernel
