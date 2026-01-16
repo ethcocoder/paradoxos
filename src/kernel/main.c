@@ -129,6 +129,7 @@ void _start(void) {
     gfx_init(framebuffer);
 
     static int in_splash = 1;
+    static int splash_counter = 0;
 
     for (;;) {
         mouse_state_t* m = mouse_get_state();
@@ -141,7 +142,8 @@ void _start(void) {
 
         if (in_splash) {
             draw_splash_screen(framebuffer->width, framebuffer->height);
-            if (key != 0) in_splash = 0;
+            splash_counter++;
+            if (splash_counter > 150) in_splash = 0; // Auto-transition
             gfx_swap_buffers();
             continue;
         }
