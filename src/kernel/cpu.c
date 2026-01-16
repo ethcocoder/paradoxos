@@ -58,5 +58,5 @@ void cpu_init() {
     i_ptr.base = (uint64_t)&idt;
     
     __asm__ volatile ("lidt %0" : : "m"(i_ptr));
-    // __asm__ volatile ("sti"); // Wait for specific drivers to enable interrupts
+    __asm__ volatile ("sti"); // Re-enabled for real-time input
 }
