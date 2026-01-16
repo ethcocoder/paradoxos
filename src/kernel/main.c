@@ -7,8 +7,8 @@
 #include "keyboard.h"
 #include "mouse.h"
 #include "user.h"
-#include "splash_img.h"
-#include "login_img.h"
+// #include "splash_img.h" // Disabled for stability
+// #include "login_img.h"
 
 __attribute__((used, section(".requests")))
 volatile LIMINE_BASE_REVISION(3);
@@ -52,18 +52,19 @@ static int pass_ptr = 0;
 static int input_focus = 0; // 0 = Username, 1 = Password
 
 void draw_splash_screen(uint32_t screen_w, uint32_t screen_h) {
-    // Background Image
-    gfx_draw_image(0, 0, splash_img_width, splash_img_height, splash_img_data);
-    
+    // Optimization: Draw procedural splash instead of large image
+    gfx_clear(0);
+    draw_logo(screen_w / 2 - 25, screen_h / 2 - 60);
+
     // Pulse text
-    if (((uint32_t)(__builtin_ia32_rdtsc() / 300000000) % 2) == 0) {
+    if (((uint32_t)(__builtin_ia32_rdtsc() / 200000000) % 2) == 0) {
         font_draw_string("Press ANY KEY to Start", screen_w / 2 - 80, screen_h - 100, COLOR_WHITE);
     }
 }
 
 void draw_kali_login(uint32_t screen_w, uint32_t screen_h, const char* title) {
-    // Background Image
-    gfx_draw_image(0, 0, login_img_width, login_img_height, login_img_data);
+    // Procedural Background (Safe Mode)
+    gfx_draw_gradient(0, 0, screen_w, screen_h, 0xFF050510, 0xFF101025);
     
     // Central Box (Kali Style)
     uint32_t w = 360, h = 420;
