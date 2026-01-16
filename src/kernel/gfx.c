@@ -70,7 +70,7 @@ void gfx_draw_rounded_rect(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint3
             else if (j > w - r - 1 && i > h - r - 1) { dx = j - (w - r - 1); dy = i - (h - r - 1); is_corner = 1; }
 
             if (is_corner) {
-                if (dx * dx + dy * dy <= r * r) gfx_put_pixel(x + j, y + i, color);
+                if ((uint32_t)(dx * dx + dy * dy) <= r * r) gfx_put_pixel(x + j, y + i, color);
             } else {
                 gfx_put_pixel(x + j, y + i, color);
             }

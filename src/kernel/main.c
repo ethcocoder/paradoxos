@@ -34,6 +34,7 @@ typedef struct {
 static int trail_x[MAX_TRAILS];
 static int trail_y[MAX_TRAILS];
 static int trail_ptr = 0;
+static system_state_t sys_state = SYS_STATE_LOGIN;
 
 void draw_logo(uint32_t x, uint32_t y) {
     // Stylized "P" with geometric hits
@@ -120,8 +121,8 @@ void _start(void) {
 
         if (sys_state == SYS_STATE_LOGIN) {
             draw_login_screen(framebuffer->width, framebuffer->height);
-            if (m->left_button && m->x > (framebuffer->width/2 - 200) && m->x < (framebuffer->width/2 + 200) &&
-                m->y > (framebuffer->height/2 + 80)) {
+            if (m->left_button && (uint64_t)m->x > (framebuffer->width/2 - 200) && (uint64_t)m->x < (framebuffer->width/2 + 200) &&
+                (uint64_t)m->y > (framebuffer->height/2 + 80)) {
                 if (user_login("admin", "1234")) {
                     sys_state = SYS_STATE_DESKTOP;
                 }
