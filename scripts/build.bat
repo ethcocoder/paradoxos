@@ -36,7 +36,7 @@ for /R src\kernel %%f in (*.c) do (
 )
 
 echo [INFO] Linking Kernel...
-ld -m i386pep -nostdlib --image-base 0xffffffff80000000 -e _start -T src/kernel/linker.ld -o %BUILD_DIR%/kernel.elf %OBJ_FILES%
+ld -m i386pep -nostdlib --image-base 0xffffffff80200000 -e kmain -T src/kernel/linker.ld -o %BUILD_DIR%/kernel.elf %OBJ_FILES%
 
 :: Note: MinGW ld might need -m i386pep for 64-bit output on Windows, but let's try standard elf_x86_64 if available or default. 
 :: Standard ld on Windows (MinGW) supports i386pep. We strictly want ELF for Limine. 

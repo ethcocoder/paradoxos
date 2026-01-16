@@ -3,33 +3,22 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "../boot/limine.h"
+#include "boot/stivale2.h"
 
-typedef uint32_t color_t;
+struct GFX_Struct {
+    uint64_t fb_addr;
+    uint32_t fb_width;
+    uint32_t fb_height;
+    uint32_t fb_pitch;
+    uint16_t fb_bpp;
+};
 
-#define COLOR_PURPLE 0xFF8000FF
-#define COLOR_DARK   0xFF1A1A1A
-#define COLOR_WHITE  0xFFFFFFFF
-#define COLOR_ACCENT 0xFF00D4FF
+extern struct GFX_Struct gfx;
 
-typedef struct {
-    uint32_t *address;
-    uint64_t width;
-    uint64_t height;
-    uint64_t pitch;
-} framebuffer_t;
-
-void gfx_init(struct limine_framebuffer *fb);
-void gfx_put_pixel(uint32_t x, uint32_t y, color_t color);
-void gfx_blend_pixel(uint32_t x, uint32_t y, color_t color, uint8_t alpha);
-void gfx_draw_rect(uint32_t x, uint32_t y, uint32_t w, uint32_t h, color_t color);
-void gfx_draw_rect_alpha(uint32_t x, uint32_t y, uint32_t w, uint32_t h, color_t color, uint8_t alpha);
-void gfx_draw_rounded_rect(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint32_t r, color_t color);
-void gfx_draw_gradient(uint32_t x, uint32_t y, uint32_t w, uint32_t h, color_t c1, color_t c2);
-void gfx_draw_image(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint32_t* data);
-void gfx_clear(color_t color);
-
-/* Double buffering support */
-void gfx_swap_buffers();
+void framebuffer_init(struct stivale2_struct *stivale2_struct, uint32_t background_color);
+void framebuffer_draw_pixel(int x, int y, uint32_t color);
+void framebuffer_clear(uint32_t color);
+void font_draw_char(char c, int x, int y, uint32_t color);
+void font_draw_string(const char *str, int x, int y, uint32_t color);
 
 #endif

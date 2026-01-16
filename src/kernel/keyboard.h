@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 
-void keyboard_init();
-void keyboard_handler();
-char keyboard_get_last_key();
+void keyboard_init(void);
+char keyboard_get_last_key(void);
+void keyboard_irq_handler(void);
 
 #endif

@@ -1,112 +1,155 @@
-#include "memory/pmm.h"
-#include "libk/string/string.h"
+#include <stdint.h>
+#include <stddef.h>
 
-static pmm_info_t pmm_info;
-static bitmap_t bitmap;
-static uint64_t hhdm_offset = 0;
-static uint64_t highest_address = 0;
+#include <boot/stivale2.h>
+#include <boot/stivale2_boot.h>
+#include <memory/pmm.h>
+#include <libk/alloc/bitmap.h>
+#include <libk/debug/debug.h>
+#include <libk/log/log.h>
+#include <libk/stdio/stdio.h>
+#include <libk/string/string.h>
 
+struct PMM_Info_Struct pmm_info;
+BITMAP_t bitmap;
 
-extern volatile struct limine_hhdm_request hhdm_request;
+size_t highest_page;
 
-void pmm_init(struct limine_memmap_response *memmap_response) {
-    if (hhdm_request.response) {
-        hhdm_offset = hhdm_request.response->offset;
+void pmm_init(struct stivale2_struct *stivale2_struct)
+{
+    struct stivale2_struct_tag_memmap *memory_map = stivale2_get_tag(stivale2_struct,
+            STIVALE2_STRUCT_TAG_MEMMAP_ID);
+
+    pmm_info.memory_map = memory_map;
+
+    struct stivale2_mmap_entry *current_entry;
+
+    size_t top = 0;
+
+    for (uint64_t i = 0; i < pmm_info.memory_map->entries; i++)
+    {
+        current_entry = &pmm_info.memory_map->memmap[i];
+
+        if (current_entry->type != STIVALE2_MMAP_USABLE &&
+                current_entry->type != STIVALE2_MMAP_BOOTLOADER_RECLAIMABLE &&
+                current_entry->type != STIVALE2_MMAP_KERNEL_AND_MODULES)
+            continue;
+
+        top = current_entry->base + current_entry->length;
+
+        if (top > highest_page)
+            highest_page = top;
     }
 
-    pmm_info.memmap = memmap_response;
-    
-    // Find highest address to determine bitmap size
-    for (uint64_t i = 0; i < memmap_response->entry_count; i++) {
-        struct limine_memmap_entry *entry = memmap_response->entries[i];
-        if (entry->type == LIMINE_MEMMAP_USABLE || 
-            entry->type == LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE ||
-            entry->type == LIMINE_MEMMAP_KERNEL_AND_MODULES) {
-            
-            uint64_t top = entry->base + entry->length;
-            if (top > highest_address) highest_address = top;
-        }
-    }
+    pmm_info.memory_size    = highest_page;
+    pmm_info.max_pages	    = KB_TO_PAGES(pmm_info.memory_size);
+    pmm_info.used_pages	    = pmm_info.max_pages;
 
-    pmm_info.total_memory = highest_address;
-    pmm_info.max_pages = highest_address / PAGE_SIZE;
-    pmm_info.used_pages = pmm_info.max_pages; // Start all as used
+    size_t bitmap_byte_size = ALIGN_UP(ALIGN_DOWN(highest_page, PAGE_SIZE) / PAGE_SIZE / 8, PAGE_SIZE);
 
-    // Calculate bitmap size (1 bit per page)
-    size_t bitmap_size = (pmm_info.max_pages / 8) + 1;
-    // Round up to page size
-    bitmap_size = (bitmap_size + PAGE_SIZE - 1) & ~(PAGE_SIZE - 1);
+    bitmap.size = bitmap_byte_size;
 
-    // Find a block for the bitmap
-    for (uint64_t i = 0; i < memmap_response->entry_count; i++) {
-        struct limine_memmap_entry *entry = memmap_response->entries[i];
-        if (entry->type == LIMINE_MEMMAP_USABLE && entry->length >= bitmap_size) {
-            bitmap.map = (uint8_t *)(entry->base + hhdm_offset);
-            bitmap.size = bitmap_size;
-            
-            // Mark the bitmap memory as used by effectively removing it from usable memory later
-            entry->base += bitmap_size;
-            entry->length -= bitmap_size;
+    current_entry = &pmm_info.memory_map->memmap[0];
+
+    for (uint64_t i = 0; i < pmm_info.memory_map->entries; i++)
+    {
+        current_entry = &pmm_info.memory_map->memmap[i];
+
+        if (current_entry->type != STIVALE2_MMAP_USABLE)
+            continue;
+
+        if (current_entry->length >= bitmap.size)
+        {
+            bitmap.map		    = (uint8_t *)(phys_to_higher_half_data(current_entry->base));
+
+            current_entry->base	    += bitmap.size;
+            current_entry->length   -= bitmap.size;
+
             break;
         }
     }
 
-    // Initialize bitmap: everything is used (1)
-    k_memset(bitmap.map, 0xFF, bitmap.size);
+    k_memset((void *)bitmap.map, 0xFF, bitmap.size);
 
-    // Free usable regions in bitmap (set to 0)
-    for (uint64_t i = 0; i < memmap_response->entry_count; i++) {
-        struct limine_memmap_entry *entry = memmap_response->entries[i];
-        if (entry->type == LIMINE_MEMMAP_USABLE) {
-            for (uint64_t j = 0; j < entry->length; j += PAGE_SIZE) {
-                uint64_t page = (entry->base + j) / PAGE_SIZE;
-                if (page < pmm_info.max_pages) {
-                    bitmap_unset_bit(&bitmap, page);
-                    pmm_info.used_pages--;
-                }
-            }
-        }
+    for (uint64_t i = 0; i < pmm_info.memory_map->entries; i++)
+    {
+        current_entry = &pmm_info.memory_map->memmap[i];
+
+        if (current_entry->type == STIVALE2_MMAP_USABLE)
+            pmm_free((void *)current_entry->base, current_entry->length / PAGE_SIZE);
     }
 
-    // Reserve page 0 (null) to be safe
     bitmap_set_bit(&bitmap, 0);
 }
 
-void *pmm_alloc(size_t page_count) {
-    if (page_count == 0) return NULL;
-
-    size_t consecutive = 0;
-    size_t start_page = 0;
-
-    for (uint64_t i = 0; i < pmm_info.max_pages; i++) {
-        if (!bitmap_check_bit(&bitmap, i)) {
-            if (consecutive == 0) start_page = i;
-            consecutive++;
-            if (consecutive == page_count) {
-                // Found it
-                for (size_t j = 0; j < page_count; j++) {
-                    bitmap_set_bit(&bitmap, start_page + j);
-                }
-                pmm_info.used_pages += page_count;
-                return (void *)(start_page * PAGE_SIZE + hhdm_offset);
-            }
-        } else {
-            consecutive = 0;
-        }
+const char *get_memory_map_entry_type(uint32_t type)
+{
+    switch (type)
+    {
+        case STIVALE2_MMAP_USABLE:
+            return "Usable";
+        case STIVALE2_MMAP_RESERVED:
+            return "Reserved";
+        case STIVALE2_MMAP_ACPI_RECLAIMABLE:
+            return "ACPI Reclaimable";
+        case STIVALE2_MMAP_ACPI_NVS:
+            return "ACPI Non Volatile Storage";
+        case STIVALE2_MMAP_BAD_MEMORY:
+            return "Bad Memory";
+        case STIVALE2_MMAP_BOOTLOADER_RECLAIMABLE:
+            return "Bootloader Reclaimable";
+        case STIVALE2_MMAP_KERNEL_AND_MODULES:
+            return "Kernel And Modules";
+        case STIVALE2_MMAP_FRAMEBUFFER:
+            return "Framebuffer";
+        default:
+            return "Unknown";
     }
-
-    return NULL; // Out of memory
 }
 
-void pmm_free(void *ptr, size_t page_count) {
-    if (!ptr) return;
-    uint64_t addr = (uintptr_t)ptr - hhdm_offset;
-    uint64_t start_page = addr / PAGE_SIZE;
+void *pmm_find_first_free_page(size_t page_count)
+{
+    if (page_count == 0)
+        return NULL;
 
-    for (size_t i = 0; i < page_count; i++) {
-        if (bitmap_check_bit(&bitmap, start_page + i)) {
-            bitmap_unset_bit(&bitmap, start_page + i);
-            pmm_info.used_pages--;
+    for (size_t counter = 0; counter < page_count; counter++)
+    {
+        for (size_t i = 0; i < PAGE_TO_BIT(highest_page); i++)
+        {
+            if (!bitmap_check_bit(&bitmap, i))
+                return (void *)BIT_TO_PAGE(i);
         }
     }
+
+    return NULL;
+}
+
+void *pmm_alloc(size_t page_count)
+{
+    if (pmm_info.used_pages <= 0)
+        return NULL;
+
+    void *pointer = pmm_find_first_free_page(page_count);
+
+    if (pointer == NULL)
+        return NULL;
+
+    uint64_t index = (uint64_t)pointer / PAGE_SIZE;
+
+    for (size_t i = 0; i < page_count; i++)
+        bitmap_set_bit(&bitmap, index + i);
+
+    pmm_info.used_pages += page_count;
+
+    return (void *)(uint64_t)(phys_to_higher_half_data(index * PAGE_SIZE));
+}
+
+void pmm_free(void *pointer, size_t page_count)
+{
+    uint64_t index = higher_half_data_to_phys((uintptr_t)pointer) / PAGE_SIZE;
+
+    for (size_t i = 0; i < page_count; i++)
+        bitmap_unset_bit(&bitmap, index + i);
+
+    pmm_info.used_pages -= page_count;
 }

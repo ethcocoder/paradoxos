@@ -1,22 +1,20 @@
 #ifndef PMM_H
 #define PMM_H
 
-#include <stdint.h>
-#include <stddef.h>
-#include "../libk/alloc/bitmap.h"
-#include "../../boot/limine.h"
+#include <memory/mem.h>
 
-#define PAGE_SIZE 4096
+struct PMM_Info_Struct
+{
+    size_t	memory_size;
+    uint32_t	max_pages;
+    uint32_t	used_pages;
+    struct	stivale2_struct_tag_memmap *memory_map;
+};
 
-typedef struct {
-    uint64_t total_memory;
-    uint64_t used_pages;
-    uint64_t max_pages;
-    struct limine_memmap_response *memmap;
-} pmm_info_t;
-
-void pmm_init(struct limine_memmap_response *memmap);
+void pmm_init(struct stivale2_struct *stivale2_struct);
+const char *get_memory_map_entry_type(uint32_t type);
+void *pmm_find_first_free_page(size_t page_count);
 void *pmm_alloc(size_t page_count);
-void pmm_free(void *ptr, size_t page_count);
+void pmm_free(void *pointer, size_t page_count);
 
 #endif
