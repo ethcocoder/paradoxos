@@ -33,10 +33,11 @@ void idt_set_descriptor(uint8_t vector, void* isr, uint8_t flags) {
 /* Generic Interrupt Handler */
 __attribute__((interrupt))
 void generic_handler(void* frame) {
-    // Determine if it's an IRQ or an Exception
-    // For now, don't talk to PIC unless we know it's an IRQ (>= 32)
-    // Actually, we can't easily know in this generic handler without more info.
-    // Safe approach: Do nothing or HALT on exceptions.
+    // If we have no way to know the vector, we can't safely EOI.
+    // However, we can try to EOI both PICs just in case it's an IRQ.
+    // This is a "dirty" but effective way to keep the system alive if unhandled IRQs fire.
+    outb(0xA0, 0x20);
+    outb(0x20, 0x20);
     (void)frame;
 }
 
