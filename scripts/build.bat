@@ -28,9 +28,9 @@ if not exist %LIMINE_DIR% (
 echo [INFO] Compiling Kernel...
 if not exist %BUILD_DIR%\src\kernel mkdir %BUILD_DIR%\src\kernel
 set OBJ_FILES=
-for %%f in (src\kernel\*.c) do (
+for /R src\kernel %%f in (*.c) do (
     echo [INFO] Compiling %%f...
-    gcc -g -m64 -march=x86-64 -ffreestanding -fno-builtin -nostdlib -mno-red-zone -mgeneral-regs-only -Wall -Wextra -I src/boot -c %%f -o %BUILD_DIR%\src\kernel\%%~nf.o
+    gcc -g -m64 -march=x86-64 -ffreestanding -fno-builtin -nostdlib -mno-red-zone -mgeneral-regs-only -Wall -Wextra -I src/boot -I src/kernel -c %%f -o %BUILD_DIR%\src\kernel\%%~nf.o
     if errorlevel 1 exit /b 1
     call set OBJ_FILES=%%OBJ_FILES%% %BUILD_DIR%\src\kernel\%%~nf.o
 )

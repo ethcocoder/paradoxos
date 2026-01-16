@@ -18,6 +18,12 @@ SECTIONS
 
     . = ALIGN(4096);
 
+    .requests : {
+        KEEP(*(.requests))
+    } :rodata
+
+    . = ALIGN(4096);
+
     .rodata : {
         *(.rodata .rodata.*)
     } :rodata
