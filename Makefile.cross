@@ -1,0 +1,119 @@
+# ParadoxOS Cross-Compilation Makefile
+# Use this with proper cross-compiler setup
+
+# Toolchain
+CC = x86_64-elf-gcc
+LD = x86_64-elf-ld
+NASM = nasm
+
+# Flags
+CFLAGS = -g -Wall -Wextra -std=gnu11 -ffreestanding -fno-stack-protector \
+         -fno-stack-check -fno-lto -fno-PIC -m64 -march=x86-64 \
+         -mno-80387 -mno-mmx -mno-sse -mno-sse2 -mno-red-zone \
+         -mcmodel=kernel -Isrc/include -Ilimine
+
+LDFLAGS = -nostdlib -static -m elf_x86_64 -z max-page-size=0x1000 -T linker.ld
+NASMFLAGS = -f elf64
+
+# Source files
+C_SOURCES = $(shell find src -name "*.c")
+ASM_SOURCES = $(shell find src -name "*.S")
+C_OBJ = $(C_SOURCES:.c=.o)
+ASM_OBJ = $(ASM_SOURCES:.S=.o)
+OBJ = $(C_OBJ) $(ASM_OBJ)
+
+# Targets
+.PHONY: all clean iso iso-structure test help
+
+all: paradox.elf
+
+paradox.elf: $(OBJ)
+	@echo "Linking kernel..."
+	$(LD) $(LDFLAGS) -o $@ $(OBJ)
+	@echo "✓ Kernel built: paradox.elf"
+
+%.o: %.c
+	@echo "Compiling $<..."
+	$(CC) $(CFLAGS) -c $< -o $@
+
+%.o: %.S
+	@echo "Assembling $<..."
+	$(CC) $(CFLAGS) -c $< -o $@
+
+iso-structure: paradox.elf
+	@echo "Creating ISO directory structure..."
+	@mkdir -p build/iso/boot
+	@cp paradox.elf build/iso/boot/
+	@cp limine.cfg build/iso/boot/
+	@if [ -f limine/limine-cd.bin ]; then \
+		cp limine/limine-cd.bin build/iso/boot/; \
+		cp limine/limine-cd-efi.bin build/iso/boot/; \
+		cp limine/limine.sys build/iso/; \
+		echo "✓ Limine files copied"; \
+	else \
+		echo "⚠ Limine files not found - download from GitHub"; \
+	fi
+	@echo "✓ ISO structure ready in build/iso/"
+
+iso: iso-structure
+	@echo "Creating bootable ISO..."
+	@if command -v xorriso >/dev/null 2>&1; then \
+		xorriso -as mkisofs \
+			-b boot/limine-cd.bin \
+			-no-emul-boot \
+			-boot-load-size 4 \
+			-boot-info-table \
+			--efi-boot boot/limine-cd-efi.bin \
+			-efi-boot-part \
+			--efi-boot-image \
+			--protective-msdos-label \
+			build/iso \
+			-o paradox.iso && \
+		echo "✓ ISO created: paradox.iso"; \
+	else \
+		echo "⚠ xorriso not found - install xorriso to create ISO"; \
+	fi
+
+test: paradox.elf
+	@echo "Testing kernel in QEMU..."
+	@if command -v qemu-system-x86_64 >/dev/null 2>&1; then \
+		qemu-system-x86_64 -kernel paradox.elf -m 256M -serial stdio; \
+	else \
+		echo "⚠ QEMU not found - install qemu-system-x86 to test"; \
+	fi
+
+test-iso: paradox.iso
+	@echo "Testing ISO in QEMU..."
+	@if command -v qemu-system-x86_64 >/dev/null 2>&1; then \
+		qemu-system-x86_64 -cdrom paradox.iso -m 256M -serial stdio; \
+	else \
+		echo "⚠ QEMU not found - install qemu-system-x86 to test"; \
+	fi
+
+clean:
+	@echo "Cleaning build files..."
+	@find . -name "*.o" -delete
+	@rm -f paradox.elf paradox.iso
+	@rm -rf build/
+	@echo "✓ Clean complete"
+
+help:
+	@echo "ParadoxOS Build System"
+	@echo "====================="
+	@echo ""
+	@echo "Targets:"
+	@echo "  all           - Build kernel (default)"
+	@echo "  iso-structure - Create ISO directory structure"
+	@echo "  iso           - Create bootable ISO"
+	@echo "  test          - Test kernel in QEMU"
+	@echo "  test-iso      - Test ISO in QEMU"
+	@echo "  clean         - Clean build files"
+	@echo "  help          - Show this help"
+	@echo ""
+	@echo "Requirements:"
+	@echo "  - x86_64-elf-gcc cross-compiler"
+	@echo "  - NASM assembler"
+	@echo "  - xorriso (for ISO creation)"
+	@echo "  - QEMU (for testing)"
+	@echo ""
+	@echo "See BUILDING.md for detailed setup instructions."

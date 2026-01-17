@@ -1,0 +1,14 @@
+# Files to ignore
+secret-file.txt
+config.env
+
+# Folders to ignore
+node_modules/
+.env/
+temp/
+build/
+iso/
+limine-7.5.2/
+limine-boot/
+.kiro/
+.bat
