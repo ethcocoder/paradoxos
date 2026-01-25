@@ -45,4 +45,4 @@ ParadoxOS is built on a 5-layer architecture:
 -   **Phase 5**: Complete Visual Identity & Theming
 
 ---
-*Powered by the ParadoxOS Team*
+*Powered by the ethco coders Team*
