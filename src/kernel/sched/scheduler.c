@@ -1,6 +1,7 @@
 #include <paradox.h>
 #include <lib/string.h>
 #include <mm/pmm.h>
+#include <mm/vmm.h>
 #include <drivers/serial.h>
 
 #define STACK_SIZE 4096
@@ -38,9 +39,10 @@ void task_create(void (*entry)(void)) {
     t->state = 0;
 
     // Allocate stack
-    uint64_t *stack_bottom = (uint64_t *)pmm_alloc(1); // 1 page
-    if (!stack_bottom) return;
+    void *phys_stack = pmm_alloc(1); // 1 page
+    if (!phys_stack) return;
     
+    uint64_t *stack_bottom = (uint64_t *)phys_to_virt((uint64_t)phys_stack);
     uint64_t *stack_top = (uint64_t *)((uint8_t *)stack_bottom + PAGE_SIZE);
 
     // Setup initial stack frame (mimic what 'task_switch' expects)
@@ -52,12 +54,12 @@ void task_create(void (*entry)(void)) {
     
     *(--stack_top) = (uint64_t)entry; // RIP (Return Address)
     
-    *(--stack_top) = 0; // R15
-    *(--stack_top) = 0; // R14
-    *(--stack_top) = 0; // R13
-    *(--stack_top) = 0; // R12
-    *(--stack_top) = 0; // RBP
     *(--stack_top) = 0; // RBX
+    *(--stack_top) = 0; // RBP
+    *(--stack_top) = 0; // R12
+    *(--stack_top) = 0; // R13
+    *(--stack_top) = 0; // R14
+    *(--stack_top) = 0; // R15
     
     t->stack_ptr = stack_top;
     task_count++;

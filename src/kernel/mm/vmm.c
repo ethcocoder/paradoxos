@@ -79,7 +79,7 @@ int swap_out_page(uint64_t vaddr) {
             
             // Mark page as swapped and free physical memory
             pt[pt_idx] = (slot << 12) | PTE_SWAPPED;
-            pmm_free(phys_to_virt(paddr), 1);
+            pmm_free((void *)paddr, 1);
             
             // Invalidate TLB
             __asm__ volatile("invlpg (%0)" : : "r"(vaddr) : "memory");
@@ -290,7 +290,7 @@ void vmm_unmap_page(uint64_t *pml4, uint64_t vaddr) {
     uint64_t pte = pt[pt_idx];
     if (pte & PTE_PRESENT) {
         uint64_t paddr = pte & 0xFFFFFFFFFFFFF000;
-        pmm_free(phys_to_virt(paddr), 1);
+        pmm_free((void *)paddr, 1);
         total_mapped_pages--;
     }
     

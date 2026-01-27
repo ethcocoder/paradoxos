@@ -61,7 +61,12 @@ uint32_t wm_create_window(uint32_t x, uint32_t y, uint32_t width, uint32_t heigh
             // Allocate window buffer
             size_t buffer_size = width * height * sizeof(uint32_t);
             size_t pages_needed = (buffer_size + PAGE_SIZE - 1) / PAGE_SIZE;
-            win->buffer = (uint32_t *)pmm_alloc(pages_needed);
+            void *phys_buffer = pmm_alloc(pages_needed);
+            if (phys_buffer) {
+                win->buffer = (uint32_t *)phys_to_virt((uint64_t)phys_buffer);
+            } else {
+                win->buffer = NULL;
+            }
             
             if (win->buffer) {
                 // Clear window buffer
@@ -93,7 +98,7 @@ void wm_destroy_window(uint32_t window_id) {
             if (win->buffer) {
                 size_t buffer_size = win->width * win->height * sizeof(uint32_t);
                 size_t pages_needed = (buffer_size + PAGE_SIZE - 1) / PAGE_SIZE;
-                pmm_free(win->buffer, pages_needed);
+                pmm_free((void *)virt_to_phys(win->buffer), pages_needed);
             }
             
             printk("[WM] Destroyed window %u\n", window_id);

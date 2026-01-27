@@ -20,26 +20,48 @@ syscall_entry:
     push %r14
     push %r15
     
-    # System call arguments are in:
-    # RAX = system call number
-    # RDI = arg1
-    # RSI = arg2  
-    # RDX = arg3
-    # R10 = arg4 (RCX is used by SYSCALL instruction)
-    # R8  = arg5
-    # R9  = arg6
+    # Stack after pushes:
+    # RSP + 0: R15
+    # RSP + 8: R14
+    # RSP + 16: R13
+    # RSP + 24: R12
+    # RSP + 32: R11
+    # RSP + 40: R10
+    # RSP + 48: R9
+    # RSP + 56: R8
+    # RSP + 64: RBP
+    # RSP + 72: RDI
+    # RSP + 80: RSI
+    # RSP + 88: RDX
+    # RSP + 96: RCX
+    # RSP + 104: RBX
+    # RSP + 112: RAX
+
+    # Move arguments to match C calling convention for syscall_handler:
+    # int64_t syscall_handler(uint64_t syscall_num, uint64_t arg1, uint64_t arg2, 
+    #                        uint64_t arg3, uint64_t arg4, uint64_t arg5, uint64_t arg6)
+    # RDI = syscall_num (RAX)
+    # RSI = arg1 (RDI)
+    # RDX = arg2 (RSI)
+    # RCX = arg3 (RDX)
+    # R8  = arg4 (R10)
+    # R9  = arg5 (R8)
+    # [stack] = arg6 (R9)
+
+    mov 112(%rsp), %rdi # syscall_num (RAX)
+    mov 72(%rsp), %rsi  # arg1 (RDI)
+    mov 80(%rsp), %rdx  # arg2 (RSI)
+    mov 88(%rsp), %rcx  # arg3 (RDX)
+    mov 40(%rsp), %r8   # arg4 (R10)
+    mov 56(%rsp), %r9   # arg5 (R8)
     
-    # Move arguments to match C calling convention
-    mov %rax, %rdi  # syscall_num
-    mov %rdi, %rsi  # arg1 (original RDI)
-    mov %rsi, %rdx  # arg2 (original RSI)
-    mov %rdx, %rcx  # arg3 (original RDX)
-    mov %r10, %r8   # arg4
-    mov %r8, %r9    # arg5
-    # arg6 is already in the right place on stack
-    
-    # Call C handler
+    # Push arg6 (R9) to stack as the 7th argument for C function
+    push 48(%rsp)
+
     call syscall_handler
+    
+    # Clean up the 7th argument from stack
+    add $8, %rsp
     
     # Return value is in RAX, leave it there
     

@@ -1,4 +1,5 @@
 #include <mm/pmm.h>
+#include <mm/vmm.h>
 #include <limine.h>
 #include <lib/string.h>
 #include <paradox.h>
@@ -46,15 +47,14 @@ void pmm_init(void) {
     // We look for a Usable Memory region large enough to hold the bitmap
     for (size_t i = 0; i < count; i++) {
         if (entries[i]->type == LIMINE_MEMMAP_USABLE && entries[i]->length >= bitmap_size) {
-            bitmap = (uint8_t *)(entries[i]->base + 0xffff800000000000); // HHDM Offset logic (simplified)
-            // Note: In real life we need to check if HHDM is enabled and use it. 
-            // For now, assuming direct mapping or identity for simplicity in this step, 
-            // but Limine recommends HHDM.
-            // Let's assume standard identity mapping for now.
-             bitmap = (uint8_t *)entries[i]->base; // DANGEROUS without VMM, but start somewhere.
+             // Use HHDM for bitmap access
+             bitmap = (uint8_t *)phys_to_virt(entries[i]->base);
              
              // Initialize bitmap to all used (1) initially, then free available regions
              memset(bitmap, 0xFF, bitmap_size);
+             
+             // Mark the bitmap region itself as used
+             // (This will be refined in step 3/4)
              break;
         }
     }
@@ -91,7 +91,7 @@ void *pmm_alloc(size_t count) {
                 for (size_t j = start_frame; j < start_frame + count; j++) {
                     bitmap_set(j);
                 }
-                return (void *)(start_frame * PAGE_SIZE);
+                return (void *)(uint64_t)(start_frame * PAGE_SIZE);
             }
         } else {
             contiguous = 0;
@@ -100,8 +100,8 @@ void *pmm_alloc(size_t count) {
     return NULL; // OOM
 }
 
-void pmm_free(void *ptr, size_t count) {
-    uint64_t frame = (uint64_t)ptr / PAGE_SIZE;
+void pmm_free(void *paddr, size_t count) {
+    uint64_t frame = (uint64_t)paddr / PAGE_SIZE;
     for (size_t i = frame; i < frame + count; i++) {
         bitmap_unset(i);
     }

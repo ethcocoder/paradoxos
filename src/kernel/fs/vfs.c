@@ -14,8 +14,9 @@ static int next_fd = 3; // 0, 1, 2 reserved for stdin, stdout, stderr
 
 // Helper functions
 static struct vfs_node *vfs_create_node(const char *name, uint32_t type) {
-    struct vfs_node *node = (struct vfs_node *)pmm_alloc(1);
-    if (!node) return NULL;
+    void *phys_node = pmm_alloc(1);
+    if (!phys_node) return NULL;
+    struct vfs_node *node = (struct vfs_node *)phys_to_virt((uint64_t)phys_node);
     
     memset(node, 0, sizeof(struct vfs_node));
     strncpy(node->name, name, VFS_MAX_NAME - 1);
@@ -36,7 +37,7 @@ static void vfs_destroy_node(struct vfs_node *node) {
     
     node->ref_count--;
     if (node->ref_count == 0) {
-        pmm_free(node, 1);
+        pmm_free((void *)virt_to_phys(node), 1);
     }
 }
 
@@ -124,8 +125,9 @@ static ssize_t memfs_read(struct vfs_node *node, void *buffer, size_t size, uint
 static ssize_t memfs_write(struct vfs_node *node, const void *buffer, size_t size, uint64_t offset) {
     // For simplicity, allocate fixed-size buffers
     if (!node->private_data) {
-        node->private_data = pmm_alloc(1); // 4KB buffer
-        if (!node->private_data) return -1;
+        void *phys_buffer = pmm_alloc(1); // 4KB buffer
+        if (!phys_buffer) return -1;
+        node->private_data = phys_to_virt((uint64_t)phys_buffer);
         memset(node->private_data, 0, PAGE_SIZE);
     }
     
@@ -276,8 +278,9 @@ int vfs_open(const char *path, uint32_t flags) {
     // Handle file creation
     if (!node && (flags & VFS_O_CREAT)) {
         // Extract directory and filename
-        char *path_copy = (char *)pmm_alloc(1);
-        if (!path_copy) return -1;
+        void *phys_path_copy = pmm_alloc(1);
+        if (!phys_path_copy) return -1;
+        char *path_copy = (char *)phys_to_virt((uint64_t)phys_path_copy);
         
         strncpy(path_copy, path, PAGE_SIZE - 1);
         path_copy[PAGE_SIZE - 1] = '\0';
@@ -296,7 +299,7 @@ int vfs_open(const char *path, uint32_t flags) {
             }
         }
         
-        pmm_free(path_copy, 1);
+        pmm_free((void *)virt_to_phys(path_copy), 1);
     }
     
     if (!node) return -ENOENT;
